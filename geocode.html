@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Geocoding service</title>
+    <meta name="viewport" content="initial-scale=1.0, user-scalable=no">
+    <meta charset="utf-8">
+    <style>
+      html, body {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+      }
+      #map {
+		top:15%;
+        width:600px;
+		height:400px;
+		left:200px;
+      }
+	  textarea{
+	  font-size: 25px;
+	  }
+      #floating-panel {
+        position: absolute;
+        top:20%;
+        left: 25%;
+        z-index: 5;
+        background-color: #fff;
+        padding: 5px;
+        border: 1px solid #999;
+        text-align: center;
+        font-family: 'Roboto','sans-serif';
+        line-height: 30px;
+        padding-left: 10px;
+      }
+    </style>
+	<script type="text/javascript" src="http://maps.google.com/maps/api/js?sensor=false&libraries=geometry"></script>
+  </head>
+  <body>
+	 
+	 <input id="busval" visibility="hidden" type="textarea" size="60" readonly />
+     
+    <div id="floating-panel">
+	  <input id="source" type="textbox" placeholder = "enter source"  />
+      <input id="address" type="textbox" placeholder = "enter destination"  />
+      <input id="submit" type="button" value="Geocode">
+    </div>
+    <div id="map"></div>
+    <script>
+      function initMap() {
+        var map = new google.maps.Map(document.getElementById('map'), {
+          zoom: 12,
+          center: {lat: 41.181335, lng: -73.187699}
+        });
+        var geocoder = new google.maps.Geocoder();
+
+        document.getElementById('submit').addEventListener('click', function() {
+          geocodeAddress(geocoder, map);
+        });
+      }
+
+	var	lat1= [ 41.181335  , 41.164786   ,41.186517 ,41.187499,41.190680    ,41.198855        ,41.203085         ];
+	var	lon1= [ -73.187699 , -73.186219  , -73.170190,-73.162004,  -73.153356  ,  -73.131716      , -73.115945      ];
+	var	lat5= [  41.181335 ,41.174402 ,41.169863, 41.162788, 41.160074        ];
+	var	lon5= [  -73.187699 ,-73.196014 ,-73.211099, -73.217043      , -73.229359      ];
+	  
+	  function drawPolyline(map, penWidth, penColor,lat,lon,myLat,myLong,sourcePoint) {
+		var path = [];
+		var myPoint = new google.maps.LatLng(myLat, myLong);
+		var map = new google.maps.Map(document.getElementById('map'), {
+			zoom: 12,
+			center: myPoint
+		});
+			
+		for (var i = 0; i < lat.length; ++i){
+			path[i] = new google.maps.LatLng(lat[i], lon[i]);
+		  var marker = new google.maps.Marker({
+			position: path[i],
+			map: map,
+			title: 'locn'
+		  });
+			
+		}
+		
+		var marker = new google.maps.Marker({
+			  map: map,
+			  position: myPoint
+		});
+		
+		var marker = new google.maps.Marker({
+			  map: map,
+			  position: sourcePoint
+		});
+		
+		var polyline = new google.maps.Polyline({
+			clickable: false,
+			map: map,
+			path: path,
+			strokeColor: penColor,
+			strokeOpacity: 0.75,
+			strokeWeight: penWidth
+		});
+		
+	  }
+	
+	  function min(dist1,dist2){
+		return dist1>dist2 ? dist2:dist1;
+	}
+	
+	  function getMin(lat1,lon1,latitude,longitude){
+		var minDistance = 99999999;
+		var mainPoint = new google.maps.LatLng(latitude, longitude);
+		for(var i=0;i<lat1.length;i++){
+			var p1 = new google.maps.LatLng(lat1[i], lon1[i]);
+			var currDist = calcDistance(p1,mainPoint);
+			minDistance = min(minDistance,currDist);
+		}
+		return minDistance;
+	  }
+	  
+	  
+	  function getSourceVal(){
+		  var originVal =document.getElementById('source').value;
+		  //originVal = originVal.trim();
+		  //originVal = originVal.replace(/ /g,"+");
+		  return originVal;
+	  }
+	  
+	  function getDestVal(){
+		  var destinationVal =document.getElementById('address').value;
+			//destinationVal = destinationVal.trim();
+			//destinationVal = destinationVal.replace(/ /g,"+");
+			return destinationVal;
+	  }
+	  
+	  function geocodeAddress(geocoder, resultsMap) {
+		var source = getSourceVal();
+		var address = getDestVal();
+		
+		if(!address || !source){
+			alert("please provide both source and destination fields")
+			return;
+		}
+		
+		geocoder.geocode({'address': source}, function(results, status) {
+		   if (status === 'OK') {
+
+				var latitude1 = results[0].geometry.location.lat();
+				var longitude1 = results[0].geometry.location.lng();
+				var sourcePoint = new google.maps.LatLng(latitude1, longitude1);
+				
+				geocoder.geocode({'address': address}, function(results2, status2) {
+				  if (status2 === 'OK') {
+					resultsMap.setCenter(results2[0].geometry.location);
+					
+					var latitude = results2[0].geometry.location.lat();
+					var longitude = results2[0].geometry.location.lng();
+					var color = "#FF0000";
+					if(getMin(lat1,lon1,latitude,longitude) < getMin(lat5,lon5,latitude,longitude)){
+						document.getElementById("busval").style.visibility = "visible";
+						document.getElementById("busval").value = "Your bus number is 1. Hope you have a great day.";
+						drawPolyline(map,4,color,lat1,lon1,latitude,longitude,sourcePoint);
+					}
+					else{
+					document.getElementById("busval").style.visibility = "visible";
+						document.getElementById("busval").value = "Your bus number is 5. Hope you have a great day.";
+						drawPolyline(map,4,color,lat5,lon5,latitude,longitude,sourcePoint);
+					}
+					
+				  } else {
+				  alert('Geocode was not successful for the following reason: ' + status2);
+				  }
+				});
+		
+		
+		
+		
+			  } else {
+				alert('Geocode was not successful for the following reason: ' + status);
+			  }
+		});
+		
+		
+		
+		
+	  }
+	  
+	function calcDistance(p1, p2) {
+	  return (google.maps.geometry.spherical.computeDistanceBetween(p1, p2));
+	}
+    </script>
+	
+    <script async defer
+    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyC_3icKM0OB2yv3Re855jmmvWhakZWYHzY&callback=initMap">
+    </script>
+  </body>
+</html>
